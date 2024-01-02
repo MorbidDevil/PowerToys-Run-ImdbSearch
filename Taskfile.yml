@@ -1,0 +1,87 @@
+# https://taskfile.dev
+
+version: '3'
+
+env:
+  VERSION:
+    sh: git describe --tags --abbrev=0 || powershell Get-Content VERSION -Head 1 || echo v0.0.0
+
+tasks:
+  clean-all:
+    cmds:
+      - cmd: cmd.exe /c rmdir /S /Q ".\bin"
+        ignore_error: true
+      - cmd.exe /c rmdir /S /Q ".\obj"
+
+  build-release-x64:
+    cmds:
+      - cmd: cmd.exe /c rmdir /S /Q ".\bin\{{.PLATFORM}}"
+        ignore_error: true
+      - dotnet build ".\Community.PowerToys.Run.Plugin.ImdbSearch.sln" -c Release /p:Platform={{.PLATFORM}}
+      - cmd.exe /c del /F /Q ".\bin\{{.PLATFORM}}\release\*.pdb"
+    vars:
+      PLATFORM: x64
+    silent: true
+
+  build-release-ARM64:
+    cmds:
+      - cmd: cmd.exe /c rmdir /S /Q ".\bin\{{.PLATFORM}}"
+        ignore_error: true
+      - dotnet build ".\Community.PowerToys.Run.Plugin.ImdbSearch.sln" -c Release /p:Platform={{.PLATFORM}}
+      - cmd.exe /c del /F /Q ".\bin\{{.PLATFORM}}\release\*.pdb"
+    vars:
+      PLATFORM: ARM64
+    silent: true
+
+  build-debug-x64:
+    cmds:
+      - cmd: cmd.exe /c rmdir /S /Q ".\bin\{{.PLATFORM}}"
+        ignore_error: true
+      - dotnet build ".\Community.PowerToys.Run.Plugin.ImdbSearch.sln" -c Debug /p:Platform={{.PLATFORM}}
+    vars:
+      PLATFORM: x64
+    silent: true
+
+  build-debug-ARM64:
+    cmds:
+      - cmd: cmd.exe /c rmdir /S /Q ".\bin\{{.PLATFORM}}"
+        ignore_error: true
+      - dotnet build ".\Community.PowerToys.Run.Plugin.ImdbSearch.sln" -c Debug /p:Platform={{.PLATFORM}}
+    vars:
+      PLATFORM: ARM64
+    silent: true
+
+  build-debug:
+    cmds:
+      - task: build-debug-ARM64
+      - task: build-debug-x64
+    silent: true
+
+  build-release:
+    cmds:
+      - task: build-release-ARM64
+      - task: build-release-x64
+    silent: true
+
+  release-x64:
+    deps: [build-release-x64]
+    cmds:
+      - cmd.exe /c move /Y ".\bin\{{.PLATFORM}}\Release" ".\bin\{{.PLATFORM}}\ImdbSearch"
+      - cmd.exe /c 7z a ".\bin\ImdbSearch-{{.VERSION}}-{{.PLATFORM}}.7z" ".\bin\{{.PLATFORM}}\ImdbSearch"
+    vars:
+      PLATFORM: x64
+
+  release-ARM64:
+    deps: [build-release-ARM64]
+    cmds:
+      - cmd.exe /c move /Y ".\bin\{{.PLATFORM}}\Release" ".\bin\{{.PLATFORM}}\ImdbSearch"
+      - cmd.exe /c 7z a ".\bin\ImdbSearch-{{.VERSION}}-{{.PLATFORM}}.7z" ".\bin\{{.PLATFORM}}\ImdbSearch"
+    vars:
+      PLATFORM: ARM64
+
+  release:
+    deps: [release-x64, release-ARM64]
+    cmds:
+      - cmd: cmd.exe /c mkdir ".\dist"
+        ignore_error: true
+      - cmd.exe /c move ".\bin\*.7z" ".\dist"
