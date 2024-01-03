@@ -51,7 +51,7 @@ namespace Community.PowerToys.Run.Plugin.ImdbSearch
         public string? yr { get; set; }
     }
 
-    public class Root
+    public class ImdbResponse
     {
         public List<Entry>? d { get; set; }
 

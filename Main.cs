@@ -198,7 +198,7 @@ namespace Community.PowerToys.Run.Plugin.ImdbSearch
                 PropertyNameCaseInsensitive = true,
             };
 
-            var root = JsonSerializer.Deserialize<Root>(json, options);
+            var root = JsonSerializer.Deserialize<ImdbResponse>(json, options);
 
             if (root == null || root.d == null)
             {
