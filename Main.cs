@@ -5,10 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Net.Http;
 using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
 using System.Windows.Controls;
 using ManagedCommon;
 using Microsoft.PowerToys.Settings.UI.Library;
@@ -27,8 +24,10 @@ namespace Community.PowerToys.Run.Plugin.ImdbSearch
 
         public static string PluginID => "0664cfc968a8473398c4124c2ba657b7";
 
-        private const string ApiUrlTemplateAll = "https://v3.sg.media-imdb.com/suggestion/x/{0}.json?includeVideos=0";
-        private const string ApiUrlTemplateOnlyMovies = "https://v3.sg.media-imdb.com/suggestion/titles/x/{0}.json?includeVideos=0";
+        private const string ApiUrlTemplateAll =
+            "https://v3.sg.media-imdb.com/suggestion/x/{0}.json?includeVideos=0";
+        private const string ApiUrlTemplateOnlyMovies =
+            "https://v3.sg.media-imdb.com/suggestion/titles/x/{0}.json?includeVideos=0";
         private const string ImdbUrlTitleTemplate = "https://www.imdb.com/title/{0}/";
         private const string ImdbUrlActorTemplate = "https://www.imdb.com/name/{0}/";
         private const string SearchOnlyTitles = nameof(SearchOnlyTitles);
@@ -37,22 +36,22 @@ namespace Community.PowerToys.Run.Plugin.ImdbSearch
         private bool _disposed;
         private bool _searchOnlyTitles;
 
-        private static readonly CompositeFormat PluginSearchFailed = System.Text.CompositeFormat.Parse(Properties.Resources.plugin_search_failed);
+        private static readonly CompositeFormat PluginSearchFailed =
+            System.Text.CompositeFormat.Parse(Properties.Resources.plugin_search_failed);
 
-        public IEnumerable<PluginAdditionalOption> AdditionalOptions => new List<PluginAdditionalOption>()
-        {
-            new PluginAdditionalOption()
+        public IEnumerable<PluginAdditionalOption> AdditionalOptions =>
+            new List<PluginAdditionalOption>()
             {
-                Key = SearchOnlyTitles,
-                DisplayLabel = Properties.Resources.plugin_search_only_titles,
-                Value = false,
-            },
-        };
+                new PluginAdditionalOption()
+                {
+                    Key = SearchOnlyTitles,
+                    DisplayLabel = Properties.Resources.plugin_search_only_titles,
+                    Value = false,
+                },
+            };
 
         public List<Result> Query(Query query)
         {
-            ArgumentNullException.ThrowIfNull(query);
-
             // empty query
             if (string.IsNullOrEmpty(query.Search))
             {
@@ -61,21 +60,88 @@ namespace Community.PowerToys.Run.Plugin.ImdbSearch
 
             string searchTerm = Uri.EscapeDataString(query.Search.Trim());
 
+            var searchResult = new ImdbSearchResult();
+
             try
             {
-                var results = SearchImdb(searchTerm, _searchOnlyTitles).Result;
-                return results;
+                searchResult = ImdbSearchApi
+                    .QueryImdbSearchAsync(searchTerm, _searchOnlyTitles)
+                    .Result;
             }
             catch (Exception e)
             {
-                Log.Error(GetTranslatedPluginTitle() + ": " + e.Message, GetType());
-
-                var results = new List<Result>();
-
-                string errorMsgString = string.Format(CultureInfo.CurrentCulture, PluginSearchFailed, BrowserInfo.Name ?? BrowserInfo.MSEdgeName);
-                results.Add(GetErrorResult(errorMsgString));
-                return results;
+                string errorMsgString = string.Format(
+                    CultureInfo.CurrentCulture,
+                    Properties.Resources.plugin_search_failed,
+                    e.Message
+                );
+                Log.Error(errorMsgString, GetType());
+                return new List<Result>([GetErrorResult(e.Message)]);
             }
+
+            if (searchResult?.ResultList == null)
+            {
+                return new List<Result>();
+            }
+
+            // Define the prefixes to search for
+            string[] prefixes = { "tt", "nm" };
+
+            // Filter the search results based on the prefixes
+            var results = searchResult
+                .ResultList.Where(
+                    entry => entry.Id != null && prefixes.Any(prefix => entry.Id.StartsWith(prefix))
+                )
+                .ToList();
+
+            var result = new List<Result>();
+            foreach (var entry in results)
+            {
+                bool isActor = entry.TypeId == null;
+
+                var resultItem = new Result
+                {
+                    Title = string.Format("{0}", entry?.Title),
+                    SubTitle = string.Format("{0}", entry?.AdditionalInfo),
+                    QueryTextDisplay = searchResult.Query,
+                    IcoPath = _icon_path,
+                };
+
+                if (!isActor)
+                {
+                    resultItem.Title = string.Format(
+                        "{0} ({1})",
+                        entry?.Title,
+                        entry?.Years != null ? entry.Years : entry?.Year
+                    );
+                    if (entry?.Year == null && entry?.Years == null)
+                    {
+                        resultItem.Title = string.Format("{0}", entry?.Title);
+                    }
+                }
+
+                resultItem.Action = action =>
+                {
+                    if (
+                        !Helper.OpenCommandInShell(
+                            BrowserInfo.Path,
+                            BrowserInfo.ArgumentsPattern,
+                            isActor
+                                ? string.Format(ImdbUrlActorTemplate, entry?.Id)
+                                : string.Format(ImdbUrlTitleTemplate, entry?.Id)
+                        )
+                    )
+                    {
+                        return false;
+                    }
+
+                    return true;
+                };
+
+                result.Add(resultItem);
+            }
+
+            return result;
         }
 
         public void Init(PluginInitContext context)
@@ -94,7 +160,9 @@ namespace Community.PowerToys.Run.Plugin.ImdbSearch
 
         public void UpdateSettings(PowerLauncherPluginSettings settings)
         {
-            _searchOnlyTitles = settings?.AdditionalOptions?.FirstOrDefault(x => x.Key == SearchOnlyTitles)?.Value ?? false;
+            _searchOnlyTitles =
+                settings?.AdditionalOptions?.FirstOrDefault(x => x.Key == SearchOnlyTitles)?.Value
+                ?? false;
         }
 
         public void ReloadData()
@@ -157,125 +225,17 @@ namespace Community.PowerToys.Run.Plugin.ImdbSearch
             }
         }
 
-        private static async Task<List<Result>> SearchImdb(string search, bool searchOnlyTitles)
-        {
-            List<Result> results = new List<Result>();
-
-            string url = string.Format(ApiUrlTemplateAll, search);
-            if (searchOnlyTitles)
-            {
-                url = string.Format(ApiUrlTemplateOnlyMovies, search);
-            }
-
-            using (HttpClient client = new HttpClient())
-            {
-                HttpResponseMessage response = await client.GetAsync(url);
-                if (response.IsSuccessStatusCode)
-                {
-                    string json = await response.Content.ReadAsStringAsync();
-                    results = ParseEntries(json);
-                }
-                else
-                {
-                    throw new Exception("response code " + response.StatusCode);
-                }
-            }
-
-            return results;
-        }
-
-        private static List<Result> ParseEntries(string json)
-        {
-            if (string.IsNullOrEmpty(json))
-            {
-                throw new Exception("json is empty");
-            }
-
-            // Allow trailing comma
-            var options = new JsonSerializerOptions
-            {
-                AllowTrailingCommas = true,
-                PropertyNameCaseInsensitive = true,
-            };
-
-            var root = JsonSerializer.Deserialize<ImdbResponse>(json, options);
-
-            if (root == null || root.d == null)
-            {
-                throw new Exception("parse error");
-            }
-
-            List<Entry> entries = root.d;
-
-            var results = new List<Result>();
-            foreach (Entry entry in entries)
-            {
-                if (entry.id == null)
-                {
-                    continue;
-                }
-
-                string[] prefixes = { "tt", "nm" };
-                var isTrash = !prefixes.Any(prefix => entry.id.StartsWith(prefix));
-
-                if (isTrash)
-                {
-                    continue;
-                }
-
-                var isActor = entry.qid == null;
-
-                var result = new Result();
-
-                string arguments = string.Format(ImdbUrlTitleTemplate, entry?.id);
-
-                if (!isActor)
-                {
-                    result.Title = string.Format("{0} ({1})", entry?.l, entry?.yr != null ? entry.yr : entry?.y);
-                    if (entry?.y == null && entry?.yr == null)
-                    {
-                        result.Title = string.Format("{0}", entry?.l);
-                    }
-
-                    result.SubTitle = string.Format("{0}", entry?.s);
-                    result.QueryTextDisplay = root.q;
-                    result.IcoPath = _icon_path;
-                }
-                else
-                {
-                    result.Title = string.Format("{0}", entry?.l);
-                    result.SubTitle = string.Format("{0}", entry?.s);
-                    result.QueryTextDisplay = root.q;
-                    result.IcoPath = _icon_path;
-
-                    arguments = string.Format(ImdbUrlActorTemplate, entry?.id);
-                }
-
-                result.ProgramArguments = arguments;
-                result.Action = action =>
-                {
-                    if (!Helper.OpenCommandInShell(BrowserInfo.Path, BrowserInfo.ArgumentsPattern, arguments))
-                    {
-                        return false;
-                    }
-
-                    return true;
-                };
-
-                results.Add(result);
-            }
-
-            return results;
-        }
-
-        private Result GetErrorResult(string errorMessage)
+        private static Result GetErrorResult(string errorMessage)
         {
             return new Result
             {
                 Title = "Error",
                 SubTitle = errorMessage,
                 IcoPath = _icon_path,
-                Action = _ => { return true; },
+                Action = _ =>
+                {
+                    return true;
+                },
             };
         }
     }

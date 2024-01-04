@@ -11,7 +11,8 @@ tasks:
     cmds:
       - cmd: cmd.exe /c rmdir /S /Q ".\bin"
         ignore_error: true
-      - cmd.exe /c rmdir /S /Q ".\obj"
+      - cmd: cmd.exe /c rmdir /S /Q ".\obj"
+        ignore_error: true
 
   build-release-x64:
     cmds:
@@ -19,6 +20,8 @@ tasks:
         ignore_error: true
       - dotnet build ".\Community.PowerToys.Run.Plugin.ImdbSearch.sln" -c Release /p:Platform={{.PLATFORM}}
       - cmd.exe /c del /F /Q ".\bin\{{.PLATFORM}}\release\*.pdb"
+      - cmd.exe /c del /F /Q ".\bin\{{.PLATFORM}}\release\Wox.*.dll"
+      - cmd.exe /c del /F /Q ".\bin\{{.PLATFORM}}\release\PowerToys.*.dll"
     vars:
       PLATFORM: x64
     silent: true
@@ -29,6 +32,8 @@ tasks:
         ignore_error: true
       - dotnet build ".\Community.PowerToys.Run.Plugin.ImdbSearch.sln" -c Release /p:Platform={{.PLATFORM}}
       - cmd.exe /c del /F /Q ".\bin\{{.PLATFORM}}\release\*.pdb"
+      - cmd.exe /c del /F /Q ".\bin\{{.PLATFORM}}\release\Wox.*.dll"
+      - cmd.exe /c del /F /Q ".\bin\{{.PLATFORM}}\release\PowerToys.*.dll"
     vars:
       PLATFORM: ARM64
     silent: true

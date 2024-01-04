@@ -115,7 +115,7 @@ namespace Community.PowerToys.Run.Plugin.ImdbSearch.Properties {
         }
         
         /// <summary>
-        ///   Sucht eine lokalisierte Zeichenfolge, die Failed to open {0}. ähnelt.
+        ///   Sucht eine lokalisierte Zeichenfolge, die Search failed: {0} ähnelt.
         /// </summary>
         internal static string plugin_search_failed {
             get {
