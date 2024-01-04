@@ -1,6 +1,6 @@
 # Plugin for PowerToys Run
 
-This is a plugin for [PowerToys Run](https://github.com/microsoft/PowerToys/wiki/PowerToys-Run-Overview) that allows you to search for movies and actors from the [Imdb](https://imdb.com/) website.
+This is a plugin for [PowerToys Run](https://github.com/microsoft/PowerToys/wiki/PowerToys-Run-Overview) that allows you to search for movies, series and actors from the [Imdb](https://imdb.com/) website.
 
 <p align="center">
     <img src="./assets/screenshot.png" width="500"/>
@@ -8,8 +8,8 @@ This is a plugin for [PowerToys Run](https://github.com/microsoft/PowerToys/wiki
 
 ## Features
 
-- Search for movies, tvseries and actors from the imdb website
-- Or search only for movies from the imdb website
+- Search for all (movies, series and actors) from the imdb website
+- Or search only for movies, series from the imdb website
 
 ## Installation
 
