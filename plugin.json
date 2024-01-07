@@ -4,7 +4,7 @@
   "IsGlobal": false,
   "Name": "ImdbSearch",
   "Author": "M0rb1dD3v1l",
-  "Version": "1.0.0",
+  "Version": "0.2.0",
   "Language": "csharp",
   "Website": "https://aka.ms/powertoys",
   "ExecuteFileName": "Community.PowerToys.Run.Plugin.ImdbSearch.dll",
