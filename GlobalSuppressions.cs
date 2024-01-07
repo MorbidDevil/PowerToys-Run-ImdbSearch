@@ -1,4 +1,4 @@
-// Copyright (c) M0rb1dD3v1l. All rights reserved.
+﻿// Copyright (c) M0rb1dD3v1l. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics.CodeAnalysis;
