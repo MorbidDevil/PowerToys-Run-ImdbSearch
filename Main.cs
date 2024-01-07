@@ -1,4 +1,4 @@
-// Copyright (c) M0rb1dD3v1l. All rights reserved.
+﻿// Copyright (c) M0rb1dD3v1l. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
@@ -55,7 +55,21 @@ namespace Community.PowerToys.Run.Plugin.ImdbSearch
             // empty query
             if (string.IsNullOrEmpty(query.Search))
             {
-                return new List<Result>();
+                return new List<Result>([
+                    new Result
+                    {
+                        Title = Properties.Resources.plugin_description,
+                        SubTitle = Properties.Resources.plugin_description,
+                        QueryTextDisplay = string.Empty,
+                        IcoPath = _icon_path,
+                        ProgramArguments = query.ActionKeyword + " ",
+                        Action = action =>
+                        {
+                            return true;
+                        },
+                    }
+
+                    ]);
             }
 
             string searchTerm = Uri.EscapeDataString(query.Search.Trim());
@@ -103,7 +117,7 @@ namespace Community.PowerToys.Run.Plugin.ImdbSearch
                 {
                     Title = string.Format("{0}", entry?.Title),
                     SubTitle = string.Format("{0}", entry?.AdditionalInfo),
-                    QueryTextDisplay = searchResult.Query,
+                    QueryTextDisplay = string.Format("{0}", entry?.Title),
                     IcoPath = _icon_path,
                 };
 
