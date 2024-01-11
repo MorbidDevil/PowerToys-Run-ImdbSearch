@@ -6,7 +6,7 @@
   "Author": "M0rb1dD3v1l",
   "Version": "0.3.0",
   "Language": "csharp",
-  "Website": "https://aka.ms/powertoys",
+  "Website": "https://github.com/MorbidDevil/PowerToys-Run-ImdbSearch",
   "ExecuteFileName": "Community.PowerToys.Run.Plugin.ImdbSearch.dll",
   "IcoPathDark": "Images\\imdb.dark.png",
   "IcoPathLight": "Images\\imdb.light.png"
